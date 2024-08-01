@@ -126,7 +126,7 @@ BEGIN
 	) AS matched_rows ON t.PNR = matched_rows.PNR
 	SET t.status = 30;
 
-select * from DS_PassengerJourneySSR;
+select * from DS_PassengerJourneySSR limit 100;
         
 END ;;
 DELIMITER ;
@@ -144,4 +144,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-08-01 19:27:16
+-- Dump completed on 2024-08-01 19:34:53
