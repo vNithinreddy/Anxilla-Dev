@@ -1,0 +1,1059 @@
+{% extends "components/layout.html" %} {% block content %}
+<div class="container p-0">
+  <div
+    class="d-md-flex d-block align-items-center justify-content-between my-4 page-header-breadcrumb"
+  >
+    <h1 class="page-title fw-semibold fs-18 mb-0">
+      Product Management
+      <i class="las la-angle-double-right text-primary"></i
+      ><span> Seat Upgrade</span
+      ><i class="las la-angle-double-right text-primary"></i
+      ><span class="text-primary"> Add | Update</span>
+    </h1>
+  </div>
+ 
+  <div class="card custom-card">
+    <div class="card-body">
+      <ul
+        class="nav nav-tabs justify-content-center mb-5 tab-style-3 navbar-tabs-container"
+        id="myTab2"
+        role="tablist"
+      >
+        <li class="nav-item me-0" role="presentation">
+          <a
+            class="nav-link home py-1 text-success"
+            id="home-tab"
+          >
+            Product Details
+          </a>
+        </li>
+        <li class="nav-item me-0" role="presentation">
+          <a
+            href="javascript:void(0)"
+            class="nav-link active about py-1"
+            id="profile-tab"
+          >
+            Fare Details
+          </a>
+        </li>
+        <li class="nav-item me-0" role="presentation">
+          <a
+            class="nav-link services py-1"
+            id="contact-tab"
+          >
+            Tax Details
+          </a>
+        </li>
+        <li class="nav-item me-0" role="presentation">
+          <a
+            class="nav-link image py-1"
+            id="contact-tab"
+          >
+            Cabin Images
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+ 
+  <div class="addUpdate card custom-card">
+    <div class="card-header align-items-start flex-column">
+      <div class="card-title">
+        Configure fare price in USD for -
+        <span class="text-primary font-weight-semibold"
+          >{{Varient}}</span
+        >
+      </div>
+      <div class="mt-2 w-100 d-flex justify-content-evenly gap-3">
+        <div>
+          <input
+            type="radio"
+            class="btn-check"
+            name="fareType"
+            id="fareType1"
+            autocomplete="off"
+            value="{{Family2}}"
+            checked
+          />
+          <label class="btn btn-outline-primary rounded-3" for="fareType1"
+            >{{Family2}}</label
+          >
+        </div>
+        <div>
+          <input
+            type="radio"
+            class="btn-check"
+            name="fareType"
+            id="fareType2"
+            value="{{Family}}"
+            autocomplete="off"
+          />
+          <label class="btn btn-outline-primary rounded-3" for="fareType2"
+            >{{Family}}</label
+          >
+        </div>
+        <div>
+          <input
+            type="radio"
+            class="btn-check"
+            name="fareType"
+            id="fareType3"
+            value="{{Family1}}"
+            autocomplete="off"
+          />
+          <label class="btn btn-outline-primary rounded-3" for="fareType3"
+            >{{Family1}}</label
+          >
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row align-items-center px-2 pb-3">
+        <div class="col-lg-8 col-sm-12">
+          <p class="fw-semibold mb-0">
+            Configure Classic fare family price for all the regions across all
+            RBD:
+          </p>
+        </div>
+ 
+        <div class="col-lg-4 col-sm-12">
+          <div class="input-group search-container">
+            <input
+              type="text"
+              class="form-control bg-light border-0"
+              placeholder="Search for Region"
+              aria-describedby="search-contact-member"
+            />
+            <button
+              class="btn btn-light"
+              type="button"
+              id="search-contact-member"
+            >
+              <i class="ri-search-line text-muted"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="table-responsive border-top">
+        <table class="table text-nowrap table-borderless">
+          <thead>
+            <tr>
+              <th scope="col">Region</th>
+              <th scope="col" colspan="3" class="text-center">
+                RBD - {{rbd_1}}
+              </th>
+              <th scope="col" colspan="3" class="text-center">
+                RBD - {{rbd_2}}
+              </th>
+              <th scope="col" colspan="3" class="text-center">
+                RBD - {{rbd_3}}
+              </th>
+              <th scope="col"></th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          {% for i in Region %}
+          <tbody
+            class="border-top"
+            region="{{i['RegionName']}}"
+            segment=""
+            flight=""
+          >
+            <tr>
+              <th scope="row">
+                <span class="region-name">{{i['RegionName']}}</span>
+              </th>
+              <td class="px-1 ps-3 text-center">
+                <p class="mb-1 fs-sm">Min Price</p>
+                <input
+                  type="number"
+                  class="form-control p-1 table-text-box"
+                  placeholder="Amount"
+                  text-box-type="min"
+                  text-box-rbd="{{rbd_1}}"
+                  value="{% if ResponseFare: %}{% for value in ResponseFare %}{% if value.Region == i['RegionName'] %}{% if value.FromRBD == rbd_1 %}{{'{0:.2f}'.format(value.MinPrice)}}{% endif %}{% endif %}{% endfor %}{% endif %}"
+                />
+              </td>
+              <td class="px-1 text-center">
+                <p class="mb-1 fs-sm">Max Price</p>
+                <input
+                  type="number"
+                  class="form-control p-1 table-text-box"
+                  placeholder="Amount"
+                  text-box-type="max"
+                  text-box-rbd="{{rbd_1}}"
+                  value="{% if ResponseFare: %}{% for value in ResponseFare %}{% if value.Region == i['RegionName'] %}{% if value.FromRBD == rbd_1 %}{{'{0:.2f}'.format(value.MaxPrice)}}{% endif %}{% endif %}{% endfor %}{% endif %}"
+                />
+              </td>
+              <td class="px-1 pe-3 text-center">
+                <p class="mb-1 fs-sm">Buy Price</p>
+                <input
+                  type="number"
+                  class="form-control p-1 table-text-box"
+                  placeholder="Amount"
+                  text-box-type="buy"
+                  text-box-rbd="{{rbd_1}}"
+                  value="{% if ResponseFare: %}{% for value in ResponseFare %}{% if value.Region == i['RegionName'] %}{% if value.FromRBD == rbd_1 %}{{'{0:.2f}'.format(value.BuyPrice)}}{% endif %}{% endif %}{% endfor %}{% endif %}"
+                />
+              </td>
+              <td class="px-1 ps-3 text-center">
+                <p class="mb-1 fs-sm">Min Price</p>
+                <input
+                  type="number"
+                  class="form-control p-1 table-text-box"
+                  placeholder="Amount"
+                  text-box-type="min"
+                  text-box-rbd="{{rbd_2}}"
+                  value="{% if ResponseFare: %}{% for value in ResponseFare %}{% if value.Region == i['RegionName'] %}{% if value.FromRBD == rbd_2 %}{{'{0:.2f}'.format(value.MinPrice)}}{% endif %}{% endif %}{% endfor %}{% endif %}"
+                />
+              </td>
+              <td class="px-1 text-center">
+                <p class="mb-1 fs-sm">Max Price</p>
+                <input
+                  type="number"
+                  class="form-control p-1 table-text-box"
+                  placeholder="Amount"
+                  text-box-type="max"
+                  text-box-rbd="{{rbd_2}}"
+                  value="{% if ResponseFare: %}{% for value in ResponseFare %}{% if value.Region == i['RegionName'] %}{% if value.FromRBD == rbd_2 %}{{'{0:.2f}'.format(value.MaxPrice)}}{% endif %}{% endif %}{% endfor %}{% endif %}"
+                />
+                
+              </td>
+              <td class="px-1 pe-3 text-center">
+                <p class="mb-1 fs-sm">Buy Price</p>
+                <input
+                  type="number"
+                  class="form-control p-1 table-text-box"
+                  placeholder="Amount"
+                  buy-item="2"
+                  text-box-type="buy"
+                  text-box-rbd="{{rbd_2}}"
+                  value="{% if ResponseFare: %}{% for value in ResponseFare %}{% if value.Region == i['RegionName'] %}{% if value.FromRBD == rbd_2 %}{{'{0:.2f}'.format(value.BuyPrice)}}{% endif %}{% endif %}{% endfor %}{% endif %}"
+                />
+                
+              </td>
+              <td class="px-1 ps-3 text-center">
+                <p class="mb-1 fs-sm">Min Price</p>
+                <input
+                  type="number"
+                  class="form-control p-1 table-text-box"
+                  placeholder="Amount"
+                  text-box-type="min"
+                  text-box-rbd="{{rbd_3}}"
+                  value="{% if ResponseFare: %}{% for value in ResponseFare %}{% if value.Region == i['RegionName'] %}{% if value.FromRBD == rbd_3 %}{{'{0:.2f}'.format(value.MinPrice)}}{% endif %}{% endif %}{% endfor %}{% endif %}"
+                />
+                
+              </td>
+              <td class="px-1 text-center">
+                <p class="mb-1 fs-sm">Max Price</p>
+                <input
+                  type="number"
+                  class="form-control p-1 table-text-box"
+                  placeholder="Amount"
+                  text-box-type="max"
+                  text-box-rbd="{{rbd_3}}"
+                  value="{% if ResponseFare: %}{% for value in ResponseFare %}{% if value.Region == i['RegionName'] %}{% if value.FromRBD == rbd_3 %}{{'{0:.2f}'.format(value.MaxPrice)}}{% endif %}{% endif %}{% endfor %}{% endif %}"
+                />
+                
+              </td>
+              <td class="px-1 pe-3 text-center">
+                <p class="mb-1 fs-sm">Buy Price</p>
+                <input
+                  type="number"
+                  class="form-control p-1 table-text-box"
+                  placeholder="Amount"
+                  text-box-type="buy"
+                  text-box-rbd="{{rbd_3}}"
+                  value="{% if ResponseFare: %}{% for value in ResponseFare %}{% if value.Region == i['RegionName'] %}{% if value.FromRBD == rbd_3 %}{{'{0:.2f}'.format(value.BuyPrice)}}{% endif %}{% endif %}{% endfor %}{% endif %}"
+                />
+                
+              </td>
+              <td class="icon-btn-td">
+                <button
+                  class="avatar avatar-md avatar-rounded btn btn-outline-primary save-individual"
+                >
+                  <i class="ti ti-device-floppy"></i>
+                </button>
+              </td>
+              <td class="icon-btn-td">
+                <button
+                  class="regionDropdown accordion-button-custom collapsed avatar avatar-md avatar-rounded btn text-primary "
+                  data-bs-toggle="collapse"
+                  data-bs-target="#table-{{i['RegionName'].replace(' ', '')}}"
+                  aria-expanded="true"
+                  aria-controls="table-{{i['RegionName'].replace(' ', '')}}"
+                >
+                  <i class="fa-solid fa-caret-down fs-1"></i>
+                </button>
+              </td>
+            </tr>
+ 
+            <tr>
+              <td
+                colspan="100"
+                class="p-0 tableContainer collapse"
+                id="table-{{i['RegionName'].replace(' ', '')}}"
+              >
+                <div class="d-flex justify-content-center mb-2">
+                  <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+          {% endfor %}
+        </table>
+      </div>
+    </div>
+ 
+    <div
+      class="card-body d-sm-flex align-items-center justify-content-center gap-4 save-btn-container"
+    >
+      <button
+        type="button"
+        class="btn btn-outline-primary rounded-pill btn-wave waves-effect waves-light px-5 fare-save-btn"
+      >
+        Save &amp; Next
+      </button>
+      <button
+        type="button"
+        class="btn btn-outline-primary rounded-pill btn-wave waves-effect waves-light px-5 fare-save-btn"
+      >
+        Save &amp; Preview
+      </button>
+    </div>
+  </div>
+</div>
+<script>
+  $(document).ready(function () {
+    $(document).on("change", ".table-text-box", function () {
+      let value = $(this).val();
+      let textBoxType = $(this).attr("text-box-type");
+      let textBoxRbd = $(this).attr("text-box-rbd");
+      let table = $(this).closest("tbody").find(".tableContainer").attr("id");
+ 
+      if (!table) return;
+ 
+      $(this)
+        .closest("tbody")
+        .find(`#${table}`)
+        .find(`input[text-box-type=${textBoxType}][text-box-rbd=${textBoxRbd}]`)
+        .val(value);
+ 
+      $(this).addClass("input-edited");
+    });
+ 
+    $(".regionDropdown").on("click", function () {
+      let parent_ele = $(this).closest("tbody");
+ 
+      if (parent_ele.find(".tableContainer").children("tbody").length > 0) {
+        console.log("no need for re ajax...");
+        return;
+      }
+ 
+      let segmentsHTML = "";
+      let segmentsHead = "";
+      let Region = parent_ele.find(".region-name").text();
+      let RegionForId = Region.replace(/ /g, "");
+      let getIdFromDropdow = $(this).attr("data-bs-target");
+ 
+      $.ajax({
+        url: "{{ url_for('product_management_seat_upgrade.seat_upgrade_fare') }}",
+        type: "POST",
+        data: {
+          type: "GetSegment",
+          Region: Region,
+          id: `{{request.args.get('id')}}`,
+        },
+        dataType: "JSON",
+        success: (response) => {
+          console.log("response",response)
+          // first
+          let first_min = $(this)
+            .closest("tr")
+            .find(
+              'input[text-box-type="min"][text-box-rbd="{{rbd_1}}"].input-edited'
+            )
+            .val();
+          let first_max = $(this)
+            .closest("tr")
+            .find(
+              'input[text-box-type="max"][text-box-rbd="{{rbd_1}}"].input-edited'
+            )
+            .val();
+          let first_buy = $(this)
+            .closest("tr")
+            .find(
+              'input[text-box-type="buy"][text-box-rbd="{{rbd_1}}"].input-edited'
+            )
+            .val();
+ 
+          // second
+          let second_min = $(this)
+            .closest("tr")
+            .find(
+              'input[text-box-type="min"][text-box-rbd="{{rbd_2}}"].input-edited'
+            )
+            .val();
+          let second_max = $(this)
+            .closest("tr")
+            .find(
+              'input[text-box-type="max"][text-box-rbd="{{rbd_2}}"].input-edited'
+            )
+            .val();
+          let second_buy = $(this)
+            .closest("tr")
+            .find(
+              'input[text-box-type="buy"][text-box-rbd="{{rbd_2}}"].input-edited'
+            )
+            .val();
+ 
+          // third
+          let third_min = $(this)
+            .closest("tr")
+            .find(
+              'input[text-box-type="min"][text-box-rbd="{{rbd_3}}"].input-edited'
+            )
+            .val();
+          let third_max = $(this)
+            .closest("tr")
+            .find(
+              'input[text-box-type="max"][text-box-rbd="{{rbd_3}}"].input-edited'
+            )
+            .val();
+          let third_buy = $(this)
+            .closest("tr")
+            .find(
+              'input[text-box-type="buy"][text-box-rbd="{{rbd_3}}"].input-edited'
+            )
+            .val();
+ 
+          segmentsHead += `<tbody> <tr class="border-bottom">
+                      <td colspan="100">
+                        <div class="row align-items-center">
+                          <div class="col-8">
+                            <p class="fw-semibold mb-0">
+                              Configure fare price in USD at Segment level for -
+                              <span class="text-primary">${Region} region</span>
+                            </p>
+                          </div>
+ 
+                          <div class="col-4">
+                            <div class="input-group">
+                              <input
+                                type="text"
+                                class="form-control bg-light border-0"
+                                placeholder="Search for Segment"
+                                aria-describedby="search-contact-member"
+                              />
+                              <button
+                                class="btn btn-light"
+                                type="button"
+                                id="search-contact-member"
+                              >
+                                <i class="ri-search-line text-muted"></i>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr></tbody>`;
+ 
+          response[0].forEach((element) => {
+            segmentsHTML += `<tbody region="${Region}" segment="${
+              element.Segment
+            }" flight="">
+                    <tr>
+                      <th scope="row">
+                        <span class="segment-name">${element.Segment}</span>
+                      </th>
+                      <td class="px-1 ps-3 text-center">
+                        <p class="mb-1 fs-sm">Min Price</p>
+                        <input
+                          type="number"
+                          class="form-control p-1 table-text-box ${
+                            first_min ? "input-edited" : ""
+                          }"
+                          placeholder="Amount"
+                          text-box-type="min"
+                          text-box-rbd={{rbd_1}}
+                          value=${first_min ? first_min : response[1].find(item => item.leg === element.Segment && item.FromRBD === '{{rbd_1}}')?.MinPrice || ''}
+                        />
+                      </td>
+                      <td class="px-1 text-center">
+                        <p class="mb-1 fs-sm">Max Price</p>
+                        <input
+                          type="number"
+                          class="form-control p-1 table-text-box ${
+                            first_max ? "input-edited" : ""
+                          }"
+                          placeholder="Amount"
+                          text-box-type="max"
+                          text-box-rbd={{rbd_1}}
+                         value=${first_max ? first_max : response[1].find(item => item.leg === element.Segment && item.FromRBD === '{{rbd_1}}')?.MaxPrice || ''}
+                        />
+                      </td>
+                      <td class="px-1 pe-3 text-center">
+                        <p class="mb-1 fs-sm">Buy Price</p>
+                        <input
+                          type="number"
+                          class="form-control p-1 table-text-box ${
+                            first_buy ? "input-edited" : ""
+                          }"
+                          placeholder="Amount"
+                          text-box-type="buy"
+                          text-box-rbd={{rbd_1}}
+                          value=${first_buy ? first_buy : response[1].find(item => item.leg === element.Segment && item.FromRBD === '{{rbd_1}}')?.BuyPrice || ''}
+                        />
+                      </td>
+                      <td class="px-1 ps-3 text-center">
+                        <p class="mb-1 fs-sm">Min Price</p>
+                        <input
+                          type="number"
+                          class="form-control p-1 table-text-box ${
+                            second_min ? "input-edited" : ""
+                          }"
+                          placeholder="Amount"
+                          text-box-type="min"
+                          text-box-rbd="{{rbd_2}}"
+                          value=${second_min ? second_min : response[1].find(item => item.leg === element.Segment && item.FromRBD === '{{rbd_2}}')?.MinPrice || ''}
+                        />
+                      </td>
+                      <td class="px-1 text-center">
+                        <p class="mb-1 fs-sm">Max Price</p>
+                        <input
+                          type="number"
+                          class="form-control p-1 table-text-box ${
+                            second_max ? "input-edited" : ""
+                          }"
+                          placeholder="Amount"
+                          text-box-type="max"
+                          text-box-rbd="{{rbd_2}}"
+                          value=${second_max ? second_max : response[1].find(item => item.leg === element.Segment && item.FromRBD === '{{rbd_2}}')?.MaxPrice || ''}
+                        />
+                      </td>
+                      <td class="px-1 pe-3 text-center">
+                        <p class="mb-1 fs-sm">Buy Price</p>
+                        <input
+                          type="number"
+                          class="form-control p-1 table-text-box ${
+                            second_buy ? "input-edited" : ""
+                          }"
+                          placeholder="Amount"
+                          text-box-type="buy"
+                          text-box-rbd="{{rbd_2}}"
+                          value=${second_buy ? second_buy : response[1].find(item => item.leg === element.Segment && item.FromRBD === '{{rbd_2}}')?.BuyPrice || ''}
+                        />
+                      </td>
+                      <td class="px-1 ps-3 text-center">
+                        <p class="mb-1 fs-sm">Min Price</p>
+                        <input
+                          type="number"
+                          class="form-control p-1 table-text-box ${
+                            third_min ? "input-edited" : ""
+                          }"
+                          placeholder="Amount"
+                          text-box-type="min"
+                          text-box-rbd="{{rbd_3}}"
+                          value=${third_min ? third_min : response[1].find(item => item.leg === element.Segment && item.FromRBD === '{{rbd_3}}')?.MinPrice || ''}
+                        />
+                      </td>
+                      <td class="px-1 text-center">
+                        <p class="mb-1 fs-sm">Max Price</p>
+                        <input
+                          type="number"
+                          class="form-control p-1 table-text-box ${
+                            third_max ? "input-edited" : ""
+                          }"
+                          placeholder="Amount"
+                          text-box-type="max"
+                          text-box-rbd="{{rbd_3}}"
+                          value=${third_max ? third_max : response[1].find(item => item.leg === element.Segment && item.FromRBD === '{{rbd_3}}')?.MaxPrice || ''}
+                        />
+                      </td>
+                      <td class="px-1 pe-3 text-center">
+                        <p class="mb-1 fs-sm">Buy Price</p>
+                        <input
+                          type="number"
+                          class="form-control p-1 table-text-box ${
+                            third_buy ? "input-edited" : ""
+                          }"
+                          placeholder="Amount"
+                          text-box-type="buy"
+                          text-box-rbd="{{rbd_3}}"
+                          value=${third_buy ? third_buy : response[1].find(item => item.leg === element.Segment && item.FromRBD === '{{rbd_3}}')?.BuyPrice || ''}
+                        />
+                      </td>
+                      <td class="icon-btn-td">
+                        <button
+                          class="avatar avatar-md avatar-rounded btn btn-outline-primary save-individual"
+                        >
+                          <i class="ti ti-device-floppy"></i>
+                        </button>
+                      </td>
+                      <td class="icon-btn-td">
+                        <button
+                          class="segmentDropdown accordion-button-custom collapsed avatar avatar-md avatar-rounded btn text-primary "
+                          data-bs-toggle="collapse"
+                          data-bs-target="#table-${RegionForId}-${
+              element.Segment
+            }"
+                          aria-expanded="true"
+                          aria-controls="table-${RegionForId}-${
+              element.Segment
+            }"
+                        >
+                          <i class="fa-solid fa-caret-down fs-1"></i>
+                        </button>
+                      </td>
+                    </tr>
+                    <tr >
+                <td
+                  colspan="100"
+                  class="p-0 tableContainer tableContainer collapse"
+                  id="table-${RegionForId}-${element.Segment}"
+                >
+                   <div class="d-flex justify-content-center mb-2">
+                  <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                </div> </td></tr></tbody>`;
+          });
+ 
+          parent_ele.find(".tableContainer").html(segmentsHead + segmentsHTML);
+        },
+      });
+    });
+ 
+    $(document).on("click", ".segmentDropdown", function () {
+      let parent_ele = $(this).closest("tbody");
+ 
+      if (parent_ele.find(".tableContainer").children("tbody").length > 0) {
+        console.log("no need for re ajax...");
+        return;
+      }
+ 
+      let flightsHTML = "";
+      let flightsHead = "";
+      let Segment = parent_ele.find(".segment-name").text();
+      let Region = parent_ele
+        .parent()
+        .closest("tbody")
+        .find(".region-name")
+        .text();
+      let getIdFromDropdow = $(this).attr("data-bs-target");
+ 
+      $.ajax({
+        url: "{{ url_for('product_management_seat_upgrade.seat_upgrade_fare') }}",
+        type: "POST",
+        data: {
+          type: "GetFlight",
+          Segment: Segment,
+          id: `{{request.args.get('id')}}`,
+        },
+        dataType: "JSON",
+        success: (response) => {
+          // first
+          let first_min = $(this)
+            .closest("tr")
+            .find(
+              'input[text-box-type="min"][text-box-rbd="{{rbd_1}}"].input-edited'
+            )
+            .val();
+          let first_max = $(this)
+            .closest("tr")
+            .find(
+              'input[text-box-type="max"][text-box-rbd="{{rbd_1}}"].input-edited'
+            )
+            .val();
+          let first_buy = $(this)
+            .closest("tr")
+            .find(
+              'input[text-box-type="buy"][text-box-rbd="{{rbd_1}}"].input-edited'
+            )
+            .val();
+ 
+          // second
+          let second_min = $(this)
+            .closest("tr")
+            .find(
+              'input[text-box-type="min"][text-box-rbd="{{rbd_2}}"].input-edited'
+            )
+            .val();
+          let second_max = $(this)
+            .closest("tr")
+            .find(
+              'input[text-box-type="max"][text-box-rbd="{{rbd_2}}"].input-edited'
+            )
+            .val();
+          let second_buy = $(this)
+            .closest("tr")
+            .find(
+              'input[text-box-type="buy"][text-box-rbd="{{rbd_2}}"].input-edited'
+            )
+            .val();
+ 
+          // third
+          let third_min = $(this)
+            .closest("tr")
+            .find(
+              'input[text-box-type="min"][text-box-rbd="{{rbd_3}}"].input-edited'
+            )
+            .val();
+          let third_max = $(this)
+            .closest("tr")
+            .find(
+              'input[text-box-type="max"][text-box-rbd="{{rbd_3}}"].input-edited'
+            )
+            .val();
+          let third_buy = $(this)
+            .closest("tr")
+            .find(
+              'input[text-box-type="buy"][text-box-rbd="{{rbd_3}}"].input-edited'
+            )
+            .val();
+ 
+          flightsHead += `<tbody>
+            <tr class="border-bottom">
+                      <td colspan="100">
+                              <div class="row align-items-center">
+                                <div class="col-8">
+                                  <p class="fw-semibold mb-0">
+                                    Configure fare price in USD at Flight level
+                                    for -
+                                    <span class="text-primary"
+                                      >${Segment} segment</span
+                                    >
+                                  </p>
+                                </div>
+ 
+                                <div class="col-4">
+                                  <div class="input-group">
+                                    <input
+                                      type="text"
+                                      class="form-control bg-light border-0"
+                                      placeholder="Search for Flight Number"
+                                      aria-describedby="search-contact-member"
+                                    />
+                                    <button
+                                      class="btn btn-light"
+                                      type="button"
+                                      id="search-contact-member"
+                                    >
+                                      <i class="ri-search-line text-muted"></i>
+                                    </button>
+                                  </div>
+                                </div>
+                              </div></td></tr></tbody>`;
+          response[0].forEach((element) => {
+            flightsHTML += `<tbody region="${Region}" segment="${Segment}" flight="${
+              element.FlightNo
+            }"> <tr>
+                            <th scope="row">
+                              <span class="segment-name">${
+                                element.FlightNo
+                              }</span>
+                            </th>
+                            <td class="px-1 ps-3 text-center">
+                              <p class="mb-1 fs-sm">Min Price</p>
+                              <input
+                                type="number"
+                                class="form-control p-1 table-text-box ${
+                                  first_min ? "input-edited" : ""
+                                }"
+                                placeholder="Amount"
+                                text-box-type="min"
+                                text-box-rbd={{rbd_1}}
+                                value=${first_min ? first_min : response[1].find(item => item.FlightNo === element.FlightNo && item.FromRBD === '{{rbd_1}}')?.MinPrice || ''}
+                              />
+                            </td>
+                            <td class="px-1 text-center">
+                              <p class="mb-1 fs-sm">Max Price</p>
+                              <input
+                                type="number"
+                                class="form-control p-1 table-text-box ${
+                                  first_max ? "input-edited" : ""
+                                }"
+                                placeholder="Amount"
+                                text-box-type="max"
+                                text-box-rbd={{rbd_1}}
+                                value=${first_max ? first_max : response[1].find(item => item.FlightNo === element.FlightNo && item.FromRBD === '{{rbd_1}}')?.MaxPrice || ''}
+                              />
+                            </td>
+                            <td class="px-1 pe-3 text-center">
+                              <p class="mb-1 fs-sm">Buy Price</p>
+                              <input
+                                type="number"
+                                class="form-control p-1 table-text-box ${
+                                  first_buy ? "input-edited" : ""
+                                }"
+                                placeholder="Amount"
+                                text-box-type="buy"
+                                text-box-rbd={{rbd_1}}
+                                value=${first_buy ? first_buy : response[1].find(item => item.FlightNo === element.FlightNo && item.FromRBD === '{{rbd_1}}')?.BuyPrice || ''}
+                              />
+                            </td>
+                            <td class="px-1 ps-3 text-center">
+                              <p class="mb-1 fs-sm">Min Price</p>
+                              <input
+                                type="number"
+                                class="form-control p-1 table-text-box ${
+                                  second_min ? "input-edited" : ""
+                                }"
+                                placeholder="Amount"
+                                text-box-type="min"
+                                text-box-rbd={{rbd_2}}
+                                value=${second_min ? second_min : response[1].find(item => item.FlightNo === element.FlightNo && item.FromRBD === '{{rbd_2}}')?.MinPrice || ''}
+                              />
+                            </td>
+                            <td class="px-1 text-center">
+                              <p class="mb-1 fs-sm">Max Price</p>
+                              <input
+                                type="number"
+                                class="form-control p-1 table-text-box ${
+                                  second_max ? "input-edited" : ""
+                                }"
+                                placeholder="Amount"
+                                text-box-type="max"
+                                text-box-rbd={{rbd_2}}
+                                value=${second_max ? second_max : response[1].find(item => item.FlightNo === element.FlightNo && item.FromRBD === '{{rbd_2}}')?.MaxPrice || ''}
+                              />
+                            </td>
+                            <td class="px-1 pe-3 text-center">
+                              <p class="mb-1 fs-sm">Buy Price</p>
+                              <input
+                                type="number"
+                                class="form-control p-1 table-text-box ${
+                                  second_buy ? "input-edited" : ""
+                                }"
+                                placeholder="Amount"
+                                text-box-type="buy"
+                                text-box-rbd={{rbd_2}}
+                                value=${second_buy ? second_buy : response[1].find(item => item.FlightNo === element.FlightNo && item.FromRBD === '{{rbd_2}}')?.BuyPrice || ''}
+                              />
+                            </td>
+                            <td class="px-1 ps-3 text-center">
+                              <p class="mb-1 fs-sm">Min Price</p>
+                              <input
+                                type="number"
+                                class="form-control p-1 table-text-box ${
+                                  third_min ? "input-edited" : ""
+                                }"
+                                placeholder="Amount"
+                                text-box-type="min"
+                                text-box-rbd={{rbd_3}}
+                                value=${third_min ? third_min : response[1].find(item => item.FlightNo === element.FlightNo && item.FromRBD === '{{rbd_3}}')?.MinPrice || ''}
+                              />
+                            </td>
+                            <td class="px-1 text-center">
+                              <p class="mb-1 fs-sm">Max Price</p>
+                              <input
+                                type="number"
+                                class="form-control p-1 table-text-box ${
+                                  third_max ? "input-edited" : ""
+                                }"
+                                placeholder="Amount"
+                                text-box-type="max"
+                                text-box-rbd={{rbd_3}}
+                                value=${third_max ? third_max : response[1].find(item => item.FlightNo === element.FlightNo && item.FromRBD === '{{rbd_3}}')?.MaxPrice || ''}
+                              />
+                            </td>
+                            <td class="px-1 pe-3 text-center">
+                              <p class="mb-1 fs-sm">Buy Price</p>
+                              <input
+                                type="number"
+                                class="form-control p-1 table-text-box ${
+                                  third_buy ? "input-edited" : ""
+                                }"
+                                placeholder="Amount"
+                                text-box-type="buy"
+                                text-box-rbd={{rbd_3}}
+                                value=${third_buy ? third_buy : response[1].find(item => item.FlightNo === element.FlightNo && item.FromRBD === '{{rbd_3}}')?.BuyPrice || ''}
+                              />
+                            </td>
+                            <td colspan="2" class="icon-btn-td">
+                              <button
+                                class="avatar avatar-md avatar-rounded btn btn-outline-primary save-individual"
+                              >
+                                <i class="ti ti-device-floppy"></i>
+                              </button>
+                            </td>
+                          </tr></tbody>`;
+          });
+          parent_ele.find(".tableContainer").html(flightsHead + flightsHTML);
+        },
+      });
+    });
+ 
+    $(".fare-save-btn").click(function () {
+      const selectedFareType = $('input[name="fareType"]:checked').val();
+      const inputData = $("input") // Select all input elements or a more specific selector if needed
+            .map(function () {
+              const value = $(this).val();
+              const valueType = $(this).attr("text-box-type");
+              const rbd = $(this).attr("text-box-rbd");
+              const region = $(this).closest("tbody").attr("region");
+              const segment = $(this).closest("tbody").attr("segment");
+              const flight = $(this).closest("tbody").attr("flight");
+
+              // Only return the object if all key properties have valid values
+              if (value && rbd && region) {
+                return {
+                  value: value,
+                  valueType: valueType,
+                  rbd: rbd,
+                  region: region,
+                  segment: segment,
+                  flight: flight,
+                };
+              }
+            })
+            .get()
+            .filter(item => item !== undefined); // Filter out undefined items
+
+      console.log(inputData);
+
+      
+      const data = transformData(inputData);
+      // console.log("data-------------", location.href.slice(location.href.search('id'), location.href));
+      console.log("data-------------", data);
+
+      $.ajax({
+        url: "{{ url_for('product_management_seat_upgrade.seat_upgrade_fare') }}",
+        type: "POST",
+        data: {
+          type: "AddFareData",
+          id: `{{request.args.get('id')}}`,
+          FareData:JSON.stringify(data),
+          selectedFareType:selectedFareType
+        },
+        dataType: "JSON",
+        success: (response) => {
+          Swal.fire({
+            title: `<strong>Fare details saved successfully</strong>`,
+            icon: "success",
+            iconColor: "#f95353",
+            confirmButtonText: "OK",
+            confirmButtonColor: "#f95353",
+            allowEscapeKey: false,
+            allowOutsideClick: false,
+            customClass: {
+              title: "swal-title",
+              content: "swal-content",
+              confirmButton: "swal-confirm-button",
+            },
+          }).then((result) => {
+            if (result.isConfirmed) {
+              const encProductId = `{{request.args.get('id')}}`;
+              window.location.href =
+                "{{url_for('product_management_seat_upgrade.seat_upgrade_tax',id='')}}"+encProductId;
+            }
+          });
+        },
+      });
+    });
+
+    $(document).on("click", ".save-individual", function () {
+      const selectedFareType = $('input[name="fareType"]:checked').val();
+
+      const inputData = $(this).closest('tr').find("input") // Select all input elements or a more specific selector if needed
+            .map(function () {
+              const value = $(this).val();
+              const valueType = $(this).attr("text-box-type");
+              const rbd = $(this).attr("text-box-rbd");
+              const region = $(this).closest("tbody").attr("region");
+              const segment = $(this).closest("tbody").attr("segment");
+              const flight = $(this).closest("tbody").attr("flight");
+
+              // Only return the object if all key properties have valid values
+              if (value && rbd && region) {
+                return {
+                  value: value,
+                  valueType: valueType,
+                  rbd: rbd,
+                  region: region,
+                  segment: segment,
+                  flight: flight,
+                };
+              }
+            })
+            .get()
+            .filter(item => item !== undefined); // Filter out undefined items
+
+      console.log(inputData);
+
+      
+      const data = transformData(inputData);
+      // console.log("data-------------", location.href.slice(location.href.search('id'), location.href));
+      console.log("data-------------", data);
+
+      $.ajax({
+        url: "{{ url_for('product_management_seat_upgrade.seat_upgrade_fare') }}",
+        type: "POST",
+        data: {
+          type: "AddFareData",
+          id: `{{request.args.get('id')}}`,
+          FareData:JSON.stringify(data),
+          selectedFareType:selectedFareType
+        },
+        dataType: "JSON",
+        success: (response) => {
+          Swal.fire({
+            title: `<strong>Fare details saved successfully</strong>`,
+            icon: "success",
+            iconColor: "#f95353",
+            confirmButtonText: "OK",
+            confirmButtonColor: "#f95353",
+            allowEscapeKey: false,
+            allowOutsideClick: false,
+            customClass: {
+              title: "swal-title",
+              content: "swal-content",
+              confirmButton: "swal-confirm-button",
+            },
+          }).then((result) => {
+            if (result.isConfirmed) {
+              const encProductId = `{{request.args.get('id')}}`;
+              window.location.href =
+                "{{url_for('product_management_seat_upgrade.seat_upgrade_tax',id='')}}"+encProductId;
+            }
+          });
+        },
+      });
+    });
+ 
+ 
+    function transformData(data) {
+      // Create a map to hold the transformed results
+      const resultMap = new Map();
+ 
+      data.forEach(({ rbd, region, segment, flight, valueType, value }) => {
+        const key = `${rbd}-${region}-${segment}-${flight}`;
+ 
+        // Initialize entry if not already in map
+        if (!resultMap.has(key)) {
+          resultMap.set(key, {
+            rbd,
+            region,
+            segment,
+            flight,
+            maxValue: 0,
+            minValue: 0,
+            buyValue: 0,
+          });
+        }
+ 
+        // Update the values
+        const entry = resultMap.get(key);
+        if (valueType === "max") entry.maxValue = value;
+        else if (valueType === "min") entry.minValue = value;
+        else if (valueType === "buy") entry.buyValue = value;
+      });
+ 
+      // Convert the map to an array
+      return [...resultMap.values()];
+    }
+  });
+</script>
+{% endblock %}
