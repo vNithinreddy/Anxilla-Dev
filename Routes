@@ -1,0 +1,692 @@
+from flask import Blueprint, render_template, jsonify, request, session,json
+from webapplication import mysql_writer_instance, mysql_reader_instance
+from webapplication.utils import get_mysql_connection
+import os
+import io
+import base64
+import datetime
+import boto3
+from datetime import datetime, timedelta
+
+product_management_seat_selection = Blueprint('product_management_seat_selection', __name__)
+
+s3 = boto3.client('s3')
+BucketNAme = 'revemax-test'
+Date = datetime.utcnow().strftime('%Y-%m-%d')
+
+# Seat Upgrade routes
+@product_management_seat_selection.route('/admin/product/seat_selection/list', methods=['GET','POST'])
+def seat_selection_list():
+    try:
+        if request.method == 'GET':
+            Type = str(request.args.get('type'))
+            if Type == 'filter_data':
+                SearchValue = str(request.args.get('searchValue'))
+                Status = str(request.args.get('status'))
+                SelectedProvider = str(request.args.get('selectedProvider'))
+                PageName = 'list'
+                FilterListJsonInput = '{"PageName":"'+PageName+'", "SearchValue":"'+SearchValue+'", "Status":"'+Status+'", "SelectedProvider":"'+SelectedProvider+'"}'
+                print("filterd_list JsonInput", FilterListJsonInput)
+                Conn = get_mysql_connection('reader', mysql_reader_instance)
+                Cur = Conn.cursor()
+                Cur.callproc('Get_ProductManagementSeatSelectionList', (FilterListJsonInput,))
+                Data = Cur.fetchall()
+                ColumnNames = [column[0] for column in Cur.description]
+                Cur.close()
+                print("\n ColumnNames \n", ColumnNames)
+                Response = [dict(zip(ColumnNames, row)) for row in Data]
+                print("Response", Response)
+                return jsonify(Response)
+            
+            elif Type == 'audit_log':
+                ProductID = request.args.get('productId')
+                AuditLogJsonInput = '{"PageName":"'+Type+'", "ProductID":"'+ProductID+'"}'
+                print(AuditLogJsonInput)
+                Conn = get_mysql_connection('reader', mysql_reader_instance)
+                Cur = Conn.cursor()
+                Cur.callproc('Get_ProductManagementSeatSelectionList', (AuditLogJsonInput,))
+                Data = Cur.fetchall()
+                print(Data)
+                Cur.close()
+                SortedDate = sorted(Data, key=lambda x: x[2], reverse=True)
+                Response = []
+                for row in SortedDate:
+                    DataDict = {}
+                    DataDict['UserName'] = row[0]
+                    DataDict['Request'] = row[1]
+                    DataDict['Date'] = row[2].strftime('%d %b, %Y')
+                    DataDict['Time'] = row[2].strftime('%H:%M')
+                    DataDict['Day'] = 'TODAY' if row[2].date() == datetime.datetime.today() else "YESTERDAY" if row[2].date() == (datetime.datetime.today() - datetime.timedelta(days=1)).date() else row[2].strftime("%A").upper()
+                    Response.append(DataDict)
+                
+                print("Response", Response)
+
+                return jsonify(Response)
+
+            else:
+                PageName = 'list'
+                ProviderFilterJsonInput = '{"PageName":"provider_list"}'
+                Conn = get_mysql_connection('reader', mysql_reader_instance)
+                Cur = Conn.cursor()
+                Cur.callproc('Get_ProductManagementSeatSelectionList', (ProviderFilterJsonInput,))
+                Provider = Cur.fetchall()
+                ProviderList = [row[0] for row in Provider]
+                PageLoadJsonInput = '{"PageName":"'+PageName+'"}'
+                print("filterd_list JsonInput", PageLoadJsonInput)
+                Conn = get_mysql_connection('reader', mysql_reader_instance)
+                Cur = Conn.cursor()
+                Cur.callproc('Get_ProductManagementSeatSelectionList', (PageLoadJsonInput,))
+                Data = Cur.fetchall()
+                ColumnNames = [column[0] for column in Cur.description]
+                Cur.close()
+                print("\n ColumnNames \n", ColumnNames)
+                Response = [dict(zip(ColumnNames, row)) for row in Data]
+                print("Response", Response)
+                return render_template('product_management/seat_selection/list.html', data=Response, ProviderList=ProviderList)
+            
+    except Exception as err:
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        ErrorDict = {
+            'PageName': 'Product management Seat Selection List',
+            'URL': request.url,
+            'FunctionName': inspect.currentframe().f_code.co_name,
+            'LoggedTime': datetime.datetime.now().isoformat(), #isoformat() is for JSON Serializability
+            'ErrorMessage': f"{exc_type} Line {exc_tb.tb_lineno} has error: {err}".replace("'", ""),
+            'RequestMethod': request.method
+        }
+
+        # ErrorData = log_application_error(ErrorDict)
+        print("\n",ErrorDict)
+        return jsonify({'status': 'Failed'})
+
+
+@product_management_seat_selection.route('/admin/product/seat_selection/add/', methods=['GET', 'POST'])
+def seat_selection_add():
+    if request.method == 'GET':
+        id = request.args.get('id','')
+        if id:
+            PageName='GetProductVarientProvider'
+            JsonInput = '{"PageName":"' + PageName + '"}'
+            conn = get_mysql_connection('reader', mysql_reader_instance)
+            cur = conn.cursor()
+            cur.callproc('Get_ProductManagementSeatSelection', (JsonInput,))
+            data = cur.fetchall()
+            res = [col[0] for col in cur.description]
+            # print('response', data)
+            conn.commit()
+            cur.close()
+            conn.close()
+            Response = [dict(zip(res, row)) for row in data]
+            providers = set(item['Provider'] for item in Response)
+            uniqueproviders = list(providers)
+
+            session['ProductVarient'] = Response
+            session['UniqueProvider'] = uniqueproviders
+
+            # print("Unique Providers:", uniqueproviders)
+            # print("sesss-----", session)
+            # print("data----", Response)
+            PageNamePD = 'GetProductData'
+            JsonInputPD = '{"PageName":"' + PageNamePD + '", "ProductId":"'+id+'"}'
+            conn = get_mysql_connection('reader', mysql_reader_instance)
+            cur = conn.cursor()
+            cur.callproc('Get_ProductManagementSeatSelection', (JsonInputPD,))
+            dataPD = cur.fetchall()
+            res = [col[0] for col in cur.description]
+            # print('response', data)
+            conn.commit()
+            cur.close()
+            conn.close()
+            ProductData = [dict(zip(res, row)) for row in dataPD]
+            
+            print("ProductData",ProductData)
+            for item in ProductData:
+                if isinstance(item['ProductDescription'], bytes):
+                    item['ProductDescription'] = item['ProductDescription'].decode('utf-8')
+            session['ProductVarient']=Response
+
+            return render_template('product_management/seat_selection/add.html', ProductVarient=Response, UniqueProvider=uniqueproviders,ProductData=ProductData)
+        else:
+            PageName = 'GetProductVarientProvider'
+            JsonInput = '{"PageName":"' + PageName + '"}'
+            conn = get_mysql_connection('reader', mysql_reader_instance)
+            cur = conn.cursor()
+            cur.callproc('Get_ProductManagementSeatSelection', (JsonInput,))
+            data = cur.fetchall()
+            res = [col[0] for col in cur.description]
+            # print('response', data)
+            conn.commit()
+            cur.close()
+            conn.close()
+            Response = [dict(zip(res, row)) for row in data]
+            providers = set(item['Provider'] for item in Response)
+            uniqueproviders = list(providers)
+
+            session['ProductVarient'] = Response
+            session['UniqueProvider'] = uniqueproviders
+            return render_template('product_management/seat_selection/add.html', ProductVarient=Response, UniqueProvider=uniqueproviders)
+        
+    if request.method=='POST':
+        json_data = request.form.get('jsonData')
+        parsed_json_data = json.loads(json_data)
+        PageName = parsed_json_data['PageName']
+        
+        if PageName=='AddProductData':
+            id = parsed_json_data['id']
+            Thumbnail_files = request.files.getlist('thumbnail_files[]')
+            Banner_files = request.files.getlist('banner_files[]')
+            print("id333333333",Thumbnail_files,Banner_files)
+            ProductTitle = parsed_json_data['ProductTitle']
+            ProductVariant = parsed_json_data['ProductVariant']
+            ProviderData = parsed_json_data['Provider']
+            ProductDetails = parsed_json_data['ProductDetails']
+            MethodDaata = parsed_json_data['Method']
+            print("ProductVariant",ProductVariant)
+            desired_variants = ProductVariant
+            response=session.get('ProductVarient')
+            
+            
+            ThumbnailFile_s3url_list = []
+            BannerFile_s3url_list = []
+            if Thumbnail_files:
+                for thumb in Thumbnail_files:
+                    print('thumb',thumb)
+                    
+                    file_name = thumb.filename
+                    s3_file_key = f'Anxillaretail/{Date}/test/{file_name}'
+                    s3.put_object(Bucket=BucketNAme, Key=s3_file_key, Body=thumb)
+                    expiration_time = datetime.utcnow() + timedelta(seconds=60480)  
+                    Thumbnailurl = s3.generate_presigned_url(
+                        ClientMethod='get_object',
+                        Params={'Bucket': BucketNAme, 'Key': s3_file_key},
+                        ExpiresIn=int((expiration_time - datetime.utcnow()).total_seconds())
+                    )
+                    print('Thumbnail url',Thumbnailurl)
+                    ThumbnailFile_s3url_list.append(Thumbnailurl)
+ 
+            if Banner_files:
+                for banner in Banner_files:
+                    
+                    bannerfilename = banner.filename
+                    s3_file_key = f'Anxillaretail/{Date}/test/{bannerfilename}'
+                    s3.put_object(Bucket=BucketNAme, Key=s3_file_key, Body=banner)
+                    expiration_time = datetime.utcnow() + timedelta(seconds=60480)  # 10 years from now
+                    Bannerurl = s3.generate_presigned_url(
+                        ClientMethod='get_object',
+                        Params={'Bucket': BucketNAme, 'Key': s3_file_key},
+                        ExpiresIn=int((expiration_time - datetime.utcnow()).total_seconds())
+                    )
+                    print('Thumbnail url',Bannerurl)
+                    BannerFile_s3url_list.append(Bannerurl)
+
+            ThumbnailFile_s3url_list = ",".join(ThumbnailFile_s3url_list)
+            BannerFile_s3url_list = ",".join(BannerFile_s3url_list)
+
+            # cabins = [
+            #     {'FromCabin': entry['FromCabin'], 'ToCabin': entry['ToCabin'], 'ProductVariant': entry['ProductVarient']}
+            #     for entry in response if entry['ProductVarient'] in desired_variants
+            # ]
+
+            # # Print the results
+            # for cabin in cabins:
+            #     FromCabin=cabin['FromCabin']
+            #     ToCabin=cabin['ToCabin']
+            #     ProductVariant=cabin['ProductVariant']
+
+            
+            JsonInput = '{"PageName":"'+PageName+'", "ProductTitle":"'+ProductTitle+'", "ProductVariant":"'+ProductVariant+'", "ProviderData":"'+ProviderData+'","ProductDetails":"'+ProductDetails+'", "MethodDaata":"'+MethodDaata+'", "ProductId":"'+id+'", "ThumbnailFile_s3url_list":"'+ThumbnailFile_s3url_list+'", "BannerFile_s3url_list":"'+BannerFile_s3url_list+'"}'
+
+           
+            print("jsoninput----->",JsonInput)
+
+            # response = get_respective_db_connection('Insupd_ProductManagementSeatUpgrade', json.dumps(JsonInput))
+            conn = get_mysql_connection('reader', mysql_writer_instance)
+            cur = conn.cursor()
+            cur.callproc('Insupd_ProductManagementSeatSelection', (JsonInput,))
+            data = cur.fetchone()
+            conn.commit()
+            cur.close()
+            conn.close()
+            print("response",data)
+        
+            return jsonify(data)
+@product_management_seat_selection.route('/admin/product/seat_selection/fare/', methods=['GET','POST'])
+def seat_selection_fare():
+    Response = []
+    rbd_1 = rbd_2 = rbd_3 = Family = Family1 = Family2 = Varient = ResponseFare = None
+    if request.method == 'GET':
+            id = request.args.get('id')
+            print("-----------id---------",id)
+            # region_name = request.args.get('RegionName')
+            # print("region_name",region_name)
+            PageName = 'GetRegion'
+            JsonInput = '{"PageName":"' + PageName + '"}'
+            conn = get_mysql_connection('reader', mysql_reader_instance)
+            cur = conn.cursor()
+            cur.callproc('Get_ProductManagementSeatSelection', (JsonInput,))
+            data = cur.fetchall()
+            res = [col[0] for col in cur.description]
+            # print('response', data)
+            conn.commit()
+            cur.close()
+            conn.close()
+            Response = [dict(zip(res, row)) for row in data]
+            # Region = {item['RegionName'] for item in Response if 'RegionName' in item}
+            # uniqueRegions = list(Region)
+
+            # session['ProductVarient'] = Response
+            # session['uniqueRegions'] = uniqueRegions
+            print("data----", Response)
+
+
+            PageNameRBD = 'GetRBD'
+            JsonInputRBD = '{"PageName":"' + PageNameRBD + '"}'
+            conn = get_mysql_connection('reader', mysql_reader_instance)
+            cur = conn.cursor()
+            cur.callproc('Get_ProductManagementSeatSelection', (JsonInputRBD,))
+            dataRBD = cur.fetchall()
+            # print('response', data)
+            conn.commit()
+            cur.close()
+            conn.close()
+            
+            print("res1",dataRBD)
+            rbd_1=dataRBD[0][0]
+            rbd_2=dataRBD[1][0]
+            rbd_3=dataRBD[2][0]
+            Family=dataRBD[0][1]
+            Family1=dataRBD[1][1]
+            Family2=dataRBD[2][1]
+            
+            PageNameVarient = 'GetVarient'
+            JsonInputVarient = '{"PageName":"' + PageNameVarient + '","ProductId":"'+id+'"}'
+            conn = get_mysql_connection('reader', mysql_reader_instance)
+            cur = conn.cursor()
+            cur.callproc('Get_ProductManagementSeatSelection', (JsonInputVarient,))
+            dataVarient = cur.fetchall()
+            # print('response', data)
+            conn.commit()
+            cur.close()
+            conn.close()
+            Varient=dataVarient[0][0]
+            
+            print("dataVarient----------------------",dataVarient)
+            
+            PageNameFare = 'GetFareData'
+            JsonInputFare = '{"PageName":"' + PageNameFare + '","ProductId":"'+id+'"}'
+            conn = get_mysql_connection('reader', mysql_reader_instance)
+            cur = conn.cursor()
+            cur.callproc('Get_ProductManagementSeatSelection', (JsonInputFare,))
+            dataFare = cur.fetchall()
+            # print('response', data)
+            conn.commit()
+            cur.close()
+            conn.close()
+            ResponseFare=[dict(zip(res, row)) for row in dataFare]
+            
+
+
+
+            
+            return render_template('product_management/seat_selection/fare.html',Region=Response,rbd_1=rbd_1, rbd_2=rbd_2, rbd_3=rbd_3,Family=Family,Family1=Family1,Family2=Family2,Varient=Varient,ResponseFare=ResponseFare)
+    if request.method=='POST':
+         form_data = request.form
+         Type = form_data.get('type')
+         if Type =='GetSegment':
+            id = form_data.get('id')
+            Region = form_data.get('Region')
+            print("Region",Region)
+            JsonInput = '{"PageName":"'+Type+'","Region":"'+Region+'"}'
+            print("JsonInput",JsonInput)
+            conn = get_mysql_connection('reader', mysql_reader_instance)
+            cur = conn.cursor()
+            cur.callproc('Get_ProductManagementSeatSelection', (JsonInput,))
+            data = cur.fetchall()
+            res = [col[0] for col in cur.description]
+            # print('response', data)
+            conn.commit()
+            cur.close()
+            conn.close()
+            Response = [dict(zip(res, row)) for row in data]
+            print(Response,"Response-----")
+            
+            PageNameFare='GetSegmentFareData'
+            
+            JsonInputFare = '{"PageName":"'+PageNameFare+'","ProductId":"'+id+'","Region":"'+Region+'"}'
+            conn = get_mysql_connection('reader', mysql_reader_instance)
+            cur = conn.cursor()
+            cur.callproc('Get_ProductManagementSeatSelection', (JsonInput,))
+            data = cur.fetchall()
+            res = [col[0] for col in cur.description]
+            # print('response', data)
+            conn.commit()
+            cur.close()
+            conn.close()
+            ResponseFare = [dict(zip(res, row)) for row in data]
+            return jsonify(Response,ResponseFare)
+        
+         if Type =='GetFlight':
+            id = form_data.get('id')
+            print("id",id)
+            Segment = form_data.get('Segment')
+            JsonInput = '{"PageName":"'+Type+'","Segment":"'+Segment+'"}'
+            conn = get_mysql_connection('reader', mysql_reader_instance)
+            cur = conn.cursor()
+            cur.callproc('Get_ProductManagementSeatSelection', (JsonInput,))
+            data = cur.fetchall()
+            res = [col[0] for col in cur.description]
+            # print('response', data)
+            conn.commit()
+            cur.close()
+            conn.close()
+            Response=[dict(zip(res, row)) for row in data]
+            PageNameFare='GetFlightFareData'
+            
+        
+            
+        
+   
+            JsonInputFare = '{"PageName":"'+PageNameFare+'","ProductId":"'+id+'","Segment":"'+Segment+'"}'
+            conn = get_mysql_connection('reader', mysql_reader_instance)
+            cur = conn.cursor()
+            cur.callproc('Get_ProductManagementSeatSelection', (JsonInput,))
+            DataFare = cur.fetchall()
+            res = [col[0] for col in cur.description]
+            # print('response', data)
+            conn.commit()
+            cur.close()
+            conn.close()
+            ResponseFare=[dict(zip(res, row)) for row in DataFare]
+            return jsonify(Response,ResponseFare)
+        
+         if Type =='AddFareData':
+            FareData = form_data.get('FareData')
+            print(FareData,"FareData")
+            id = form_data.get('id')
+            SelectedFareType= form_data.get('selectedFareType')
+
+
+            PageName2='GetVarient'
+            JsonInput2 = '{"PageName":"'+PageName2+'","ProductId":"'+id+'"}'
+            print("JsonInput2",JsonInput2)
+            conn = get_mysql_connection('reader', mysql_reader_instance)
+            cur = conn.cursor()
+            cur.callproc('Get_ProductManagementSeatSelection', (JsonInput2,))
+            data = cur.fetchall()
+            res = [col[0] for col in cur.description]
+            # print('response', data)
+            conn.commit()
+            cur.close()
+            conn.close()
+            # FromCabin=data2[0][1]
+            # ToCabin=data2[0][2]
+            print("data------------->",SelectedFareType)
+
+            FareData = json.loads(FareData)
+
+
+            non_blank_flights = {(entry['region'], entry['segment']) for entry in FareData if entry['flight']}
+
+            # Step 2: Identify (region, segment) tuples where segment is not blank
+            non_blank_segments = {(entry['region'], entry['segment']) for entry in FareData if entry['segment']}
+
+            # Step 3: Filter out entries where:
+            # 1. Flight is blank and there's a matching region and segment with a non-blank flight.
+            # 2. Segment is blank and there's a matching region and segment with a non-blank segment.
+            # 3. Both flight and segment are blank if a non-blank flight or segment exists in the same region.
+            filtered_FareData = [
+                entry for entry in FareData 
+                if not (
+                    (entry['flight'] == "" and (entry['region'], entry['segment']) in non_blank_flights) or
+                    (entry['segment'] == "" and (entry['region'], entry['segment']) in non_blank_segments) or
+                    (entry['flight'] == "" and entry['segment'] == "" and (
+                        entry['region'] in {region for (region, segment) in non_blank_flights | non_blank_segments}
+                    ))
+                )
+            ]
+
+
+            fare_data_json = json.dumps(filtered_FareData, indent=4)
+
+            print("FareData", fare_data_json)
+            
+            print("id",id)
+            JsonInput = '{"PageName":"'+Type+'","FareData":'+fare_data_json+',"FareId":"''","ProductId":"'+id+'","SelectedFareType":"'+SelectedFareType+'"}'
+            print("JsonInput",JsonInput)
+            conn = get_mysql_connection('reader', mysql_writer_instance)
+            cur = conn.cursor()
+            cur.callproc('Insupd_ProductManagementSeatSelection', (JsonInput,))
+            data = cur.fetchall()
+            res = [col[0] for col in cur.description]
+            # print('response', data)
+            conn.commit()
+            cur.close()
+            conn.close()
+            Response=[dict(zip(res, row)) for row in data]
+            return jsonify(Response)
+
+
+@product_management_seat_selection.route('/admin/product/seat_selection/tax', methods=['GET','POST'])
+def seat_selection_tax():
+    if request.method == 'GET':
+        id = request.args.get('id','')
+        if id:
+            PageName = 'GetCountry'
+            JsonInput = '{"PageName":"' + PageName + '"}'
+            conn = get_mysql_connection('reader', mysql_reader_instance)
+            cur = conn.cursor()
+            cur.callproc('Get_ProductManagementSeatSelection', (JsonInput,))
+            data = cur.fetchall()
+            res = [col[0] for col in cur.description]
+            conn.commit()
+            cur.close()
+            conn.close()
+            Response = [dict(zip(res, row)) for row in data]
+            print("------------Country----------",Response)
+            
+            PageNameCurrency = 'GetCurrency'
+            JsonInputCurrency = '{"PageName":"' + PageNameCurrency + '"}'
+            conn = get_mysql_connection('reader', mysql_reader_instance)
+            cur = conn.cursor()
+            cur.callproc('Get_ProductManagementSeatSelection', (JsonInputCurrency,))
+            dataCurrency = cur.fetchall()
+            res = [col[0] for col in cur.description]
+            # print('response', data)
+            conn.commit()
+            cur.close()
+            conn.close()
+            Response_Currency = [dict(zip(res, row)) for row in dataCurrency]
+            
+            
+            PageNameTax = 'GetTaxData'
+            JsonInputTax = '{"PageName":"' + PageNameTax + '"}'
+            conn = get_mysql_connection('reader', mysql_reader_instance)
+            cur = conn.cursor()
+            cur.callproc('Get_ProductManagementSeatSelection', (JsonInputTax,))
+            dataTax = cur.fetchall()
+            res = [col[0] for col in cur.description]
+            
+            conn.commit()
+            cur.close()
+            conn.close()
+            Response_Tax = [dict(zip(res, row)) for row in dataTax]
+            
+            PageNameVarient = 'GetVarient'
+            JsonInputVarient = '{"PageName":"' + PageNameVarient + '","ProductId":"'+id+'"}'
+            conn = get_mysql_connection('reader', mysql_reader_instance)
+            cur = conn.cursor()
+            cur.callproc('Get_ProductManagementSeatSelection', (JsonInputVarient,))
+            dataVarient = cur.fetchall()
+            res = [col[0] for col in cur.description]
+            
+            conn.commit()
+            cur.close()
+            conn.close()
+            Varient=dataVarient[0][0]
+            
+            PageNameFare='GetFareData'
+            
+            print("------------Currency----------",Response_Tax)
+    
+            return render_template('product_management/seat_selection/tax.html',Country=Response,Currency=Response_Currency,TaxData=Response_Tax,Varient=Varient)
+        else:
+            PageName = 'GetCountry'
+            JsonInput = '{"PageName":"' + PageName + '"}'
+            conn = get_mysql_connection('reader', mysql_reader_instance)
+            cur = conn.cursor()
+            cur.callproc('Get_ProductManagementSeatSelection', (JsonInput,))
+            data = cur.fetchall()
+            res = [col[0] for col in cur.description]
+            
+            conn.commit()
+            cur.close()
+            conn.close()
+            Response = [dict(zip(res, row)) for row in data]
+            return render_template('product_management/seat_selection/tax.html',Country=Response)
+        
+    if request.method=='POST':
+        form_data = request.form
+        PageName = form_data.get('PageName')
+        print("PageName",PageName)
+        if PageName=='AddTaxData':
+            TaxData = form_data.get('TaxData')
+            id = form_data.get('id')
+            print("TaxData",TaxData)
+
+            PageName2='GetVarient'
+            JsonInput2 = '{"PageName":"'+PageName2+'","ProductId":"'+id+'"}'
+            print("JsonInput2",JsonInput2)
+            conn = get_mysql_connection('reader', mysql_reader_instance)
+            cur = conn.cursor()
+            cur.callproc('Get_ProductManagementSeatUpgrade', (JsonInput2,))
+            data2 = cur.fetchall()
+            conn.commit()
+            cur.close()
+            conn.close()
+            # FromCabin=data2[0][1]
+            # ToCabin=data2[0][2]
+
+
+            JsonInput = '{"PageName":"'+PageName+'","TaxData":'+TaxData+',"TaxId":"","ProductId":"'+id+'"}'
+            print("jsoninput----->",JsonInput)
+            conn = get_mysql_connection('reader', mysql_writer_instance)
+            cur = conn.cursor()
+            cur.callproc('Insupd_ProductManagementSeatSelection', (JsonInput,))
+            data2 = cur.fetchall()
+            conn.commit()
+            cur.close()
+            conn.close()
+
+
+           
+            print("response",data2)
+        
+            return jsonify(data2)
+
+@product_management_seat_selection.route('/admin/product/seat_selection/images', methods=['GET','POST'])
+def seat_selection_images():
+    if request.method=='GET':
+        id = request.args.get('id','')
+
+        PageName='GetAircraftData'
+        JsonInput = '{"PageName":"'+PageName+'"}'
+        conn = get_mysql_connection('reader', mysql_reader_instance)
+        cur = conn.cursor()
+        cur.callproc('Get_ProductManagementSeatSelection', (JsonInput,))
+        data = cur.fetchall()
+        res=[col[0] for col in cur.description]
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        Response=[dict(zip(res, row)) for row in data]
+        print("Response",Response)
+
+        PageName2='GetVarient'
+        JsonInput2 = '{"PageName":"'+PageName2+'","ProductId":"'+id+'"}'
+        print("JsonInput2",JsonInput2)
+        conn = get_mysql_connection('reader', mysql_reader_instance)
+        cur = conn.cursor()
+        cur.callproc('Get_ProductManagementSeatSelection', (JsonInput2,))
+        data2 = cur.fetchall()
+        conn.commit()
+        cur.close()
+        conn.close()
+        Varient=data2
+
+        return render_template('product_management/seat_selection/images.html',AircraftData=Response,Varient=Varient)
+    
+    if request.method=='POST':
+        json_data = request.form.get('jsonData')
+        parsed_json_data = json.loads(json_data)
+        print("parsed_json_data",parsed_json_data)
+        PageName = parsed_json_data['PageName']
+        id = parsed_json_data['id']
+        print("id",id,PageName)
+
+        aircraft_data = {}
+
+        for key in request.files:
+            # Extract the aircraft ID from the key
+            aircraft_id = key.split('[')[1].split(']')[0]
+
+            if aircraft_id not in aircraft_data:
+                aircraft_data[aircraft_id] = []
+
+            # Get all files associated with this key
+            files = request.files.getlist(key)
+
+            # Add the file objects (or process them)
+            aircraft_data[aircraft_id].extend(files)
+
+        ThumbnailFile_s3url_list = []
+
+        for aircraft_id, files in aircraft_data.items():
+            for file in files:
+                print('file', file)
+               # Generate the S3 file key
+                file_name = file.filename
+                file_type = file.mimetype
+                print("file_type",file_type)
+                s3_file_key = f'Anxillaretail/{Date}/test/{file_name}'
+                s3.put_object(Bucket=BucketNAme, Key=s3_file_key, Body=file)
+                expiration_time = datetime.utcnow() + timedelta(seconds=60480)  # 10 years from now
+                Thumbnailurl = s3.generate_presigned_url(
+                    ClientMethod='get_object',
+                    Params={'Bucket': BucketNAme, 'Key': s3_file_key},
+                    ExpiresIn=int((expiration_time - datetime.utcnow()).total_seconds())
+                )
+                
+                ThumbnailFile_s3url_list.append({
+                    'aircraft_data': aircraft_id,
+                    'filename': Thumbnailurl
+                })
+
+        ImageData = [
+            {
+                "AircraftData": aircraft_id,
+                "FileNames": ', '.join(entry['filename'] for entry in ThumbnailFile_s3url_list if entry['aircraft_data'] == aircraft_id),
+                "FileType":file_type
+            }
+            for aircraft_id in set(entry['aircraft_data'] for entry in ThumbnailFile_s3url_list)
+        ]
+
+        print("ImageData:", ImageData)
+        ImageData = json.dumps(ImageData, indent=4)
+
+        JsonInput = '{"PageName":"'+PageName+'","ImageData":'+ImageData+',"ProductId":"'+id+'"}'
+        print("jsoninput----->",JsonInput)
+        conn = get_mysql_connection('reader', mysql_writer_instance)
+        cur = conn.cursor()
+        cur.callproc('Insupd_ProductManagementSeatSelection', (JsonInput,))
+        data = cur.fetchone()
+        conn.commit()
+        cur.close()
+        conn.close()
+
+
+                
+
+        
+
+        return jsonify("sucess")
